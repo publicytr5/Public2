@@ -1,3 +1,4 @@
+```python
 import logging
 import random
 import string
@@ -42,13 +43,19 @@ def health():
     return "OK", 200
 
 CARD_BINS = {
-    "USD": ["435880xx", "491277xx", "511332xx", "428313xx", "520356xx", "409758xx", "525362xx", "451129xx", "434340xx", "426370xx", "411810xx", "403446xx", "533621xx", "446317xx", "457824xx", "545660xx", "432465xx", "516612xx", "484718xx", "485246xx", "402372xx", "457851xx"],
+    "USD": [
+        "435880xx", "491277xx", "511332xx", "520356xx", "409758xx",
+        "525362xx", "451129xx", "434340xx", "426370xx", "411810xx",
+        "403446xx", "533621xx", "446317xx", "545660xx", "516612xx",
+        "484718xx", "485246xx", "402372xx", "457851xx",
+        "373778xx", "377935xx", "375163xx"
+    ],
     "CAD": ["533985xx", "461126xx"],
-    "AUD": ["373778xx", "377935xx", "375163xx"]
+    "AUD": ["428313xx", "457824xx", "432465xx"]
 }
 
 CAD_BINS = ["533985xx", "461126xx"]
-AUD_BINS = ["373778xx", "377935xx", "375163xx"]
+AUD_BINS = ["428313xx", "457824xx", "432465xx"]
 
 FILTER_BIN_MAP = {
     "vanilla": ["411810xx", "409758xx", "520356xx", "525362xx", "484718xx", "545660xx"],
@@ -65,7 +72,7 @@ class StickerType(Enum):
     GOOGLE = "🅶"
     PAYPAL = "🅿"
 
-# Updated TON addresses
+# Updated GRAM addresses
 TON_ADDRESSES = [
     "UQCCTTF03CCeyNKov1azQty5iNcNMnwH72J7pcb7MUaDKXsd",
     "UQAZjMCIT6MEMUgvKmweTySPrGqxnUrgvG5JQVUfnR-d_tke",
@@ -363,7 +370,7 @@ class KeyboardBuilder:
     def get_deposit_choice_keyboard() -> InlineKeyboardMarkup:
         keyboard = [
             [InlineKeyboardButton("💵 USDT", callback_data="deposit_usdt")],
-            [InlineKeyboardButton("🔷 TON", callback_data="deposit_ton")]
+            [InlineKeyboardButton("🔷 GRAM", callback_data="deposit_ton")]
         ]
         return InlineKeyboardMarkup(keyboard)
 
@@ -453,7 +460,7 @@ async def send_listing_page(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     message_text = "Vanila Exchange - Main Listings V2\n\n"
     message_text += "Your Balance:\n"
     message_text += f"💵 USDT: ${user.usdt_balance:.2f}\n"
-    message_text += f"• TON : {user.ton_balance:.6f} (${user.ton_balance * 2:.2f})\n\n"
+    message_text += f"• GRAM : {user.ton_balance:.6f} (${user.ton_balance * 2:.2f})\n\n"
 
     for i, card in enumerate(cards, 1):
         message_text += f"{i}. {card.card_number} {card.currency}${card.amount:.2f} at 33%"
@@ -517,7 +524,7 @@ async def send_stock_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_text = "Vanila Exchange - Main Listings V2\n\n"
     message_text += "Your Balance:\n"
     message_text += f"💵 USDT: ${user.usdt_balance:.2f}\n"
-    message_text += f"• TON : {user.ton_balance:.6f} (${user.ton_balance * 2:.2f})\n\n"
+    message_text += f"• GRAM : {user.ton_balance:.6f} (${user.ton_balance * 2:.2f})\n\n"
 
     for i, card in enumerate(cards, 1):
         message_text += f"{i}. {card.card_number} {card.currency}${card.amount:.2f} at 33%"
@@ -566,12 +573,12 @@ async def deposit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()
         await query.edit_message_text(
-            "🏦 Vanila Exchange Deposit\n\nChoose your deposit amount and the coin type:\nUSDT | TON | More being added soon",
+            "🏦 Vanila Exchange Deposit\n\nChoose your deposit amount and the coin type:\nUSDT | GRAM | More being added soon",
             reply_markup=keyboard_builder.get_deposit_choice_keyboard()
         )
     else:
         await update.message.reply_text(
-            "🏦 Vanila Exchange Deposit\n\nChoose your deposit amount and the coin type:\nUSDT | TON | More being added soon",
+            "🏦 Vanila Exchange Deposit\n\nChoose your deposit amount and the coin type:\nUSDT | GRAM | More being added soon",
             reply_markup=keyboard_builder.get_deposit_choice_keyboard()
         )
 
@@ -581,7 +588,8 @@ async def deposit_coin_selected(update: Update, context: ContextTypes.DEFAULT_TY
     coin = query.data.split("_")[1]
     context.user_data['deposit_coin'] = coin.upper()
     context.user_data['awaiting_deposit_amount'] = True
-    await query.edit_message_text(f"Enter your amount in {coin.upper()}:")
+    display_coin = "GRAM" if coin.upper() == "TON" else coin.upper()
+    await query.edit_message_text(f"Enter your amount in {display_coin}:")
 
 async def handle_deposit_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.user_data.get('awaiting_deposit_amount'):
@@ -589,9 +597,10 @@ async def handle_deposit_amount(update: Update, context: ContextTypes.DEFAULT_TY
     try:
         amount = float(update.message.text.strip())
         coin = context.user_data.get('deposit_coin', 'TON')
+        display_coin = "GRAM" if coin == "TON" else coin
         min_amount = 10.0
         if amount < min_amount:
-            await update.message.reply_text(f"Minimum deposit {min_amount} {coin}. Please enter a valid amount.")
+            await update.message.reply_text(f"Minimum deposit {min_amount} {display_coin}. Please enter a valid amount.")
             return
 
         order_number = str(random.randint(10000000, 99999999))
@@ -601,8 +610,8 @@ async def handle_deposit_amount(update: Update, context: ContextTypes.DEFAULT_TY
 
         if coin == "TON":
             addresses = TON_ADDRESSES
-            network = "TON NETWORK"
-            currency = "TON"
+            network = "TON Network"
+            currency = "GRAM"
         else:
             addresses = USDT_ADDRESSES
             network = "USDT-BSC(BEP20)"
@@ -621,7 +630,7 @@ async def handle_deposit_amount(update: Update, context: ContextTypes.DEFAULT_TY
             f"Here are the details:\n"
             f"Send crypto to the address shown below:\n\n"
             f"📸 Scan the QR code or copy the address to proceed with payment.\n\n"
-            f"Must be sent ⚠️ : {network} ✅\n"
+            f"🌐 NETWORK: {network} ✅\n"
             f"💎 Currency : {currency}\n\n"
             f"🏦 Address: `{selected_address}`\n"
             f"💸 Deposit Amount: `{amount:.2f}` {currency}\n"
@@ -697,7 +706,7 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Name : {user.first_name}\n"
         f"ID : {user.user_id}\n"
         f"Your balance USDT : {user.usdt_balance:.4f}\n"
-        f"Your balance TON : {user.ton_balance:.4f}"
+        f"Your balance GRAM : {user.ton_balance:.4f}"
     )
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("➕ Balance", callback_data="deposit"),
@@ -711,7 +720,7 @@ async def withdraw_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Name : {user.first_name}\n"
         f"ID : {user.user_id}\n"
         f"Your balance USDT : {user.usdt_balance:.4f}\n"
-        f"Your balance TON : {user.ton_balance:.4f}"
+        f"Your balance GRAM : {user.ton_balance:.4f}"
     )
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("➕ Balance", callback_data="deposit"),
@@ -725,7 +734,7 @@ async def withdraw_confirm_callback(update: Update, context: ContextTypes.DEFAUL
     await query.answer()
     msg = await query.message.reply_text("⚙️⏳ Checking USDT Balance")
     await asyncio.sleep(1)
-    await msg.edit_text("⚙️⏳ Checking TON Balance")
+    await msg.edit_text("⚙️⏳ Checking GRAM Balance")
     await asyncio.sleep(1)
     await msg.edit_text("Sorry, insufficient balance. Please /deposit first.")
 
@@ -739,10 +748,10 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"💬 By: Francis Bacon\n\n"
         f"🆔 User ID: {user.user_id}\n"
         f"🔹 Username: @{user.username}\n"
-        f"💰 TON Balance: {user.ton_balance:.10f}\n"
+        f"💰 GRAM Balance: {user.ton_balance:.10f}\n"
         f"💵 USDT Balance: ${user.usdt_balance:.2f}\n\n"
         f"📥 Deposits\n"
-        f"• Total TON: {user.total_deposits_ton:.4f} Ton\n"
+        f"• Total GRAM: {user.total_deposits_ton:.4f} Gram\n"
         f"• Total USDT: ${user.total_deposits_usd:.2f}\n"
         f"• Last: {user.last_deposit}\n\n"
         f"🛒 Purchases\n"
@@ -985,3 +994,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print("Bot stopped")
+```
