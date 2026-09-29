@@ -1,4 +1,3 @@
-
 import logging
 import random
 import string
@@ -30,7 +29,8 @@ PORT = int(os.environ.get("PORT", 8080))
 BOT_USERNAME = "Vanilla_cards_bot"
 ADMIN_ID = 8508012498
 
-CAD_TO_USD_RATE = 0.73
+CAD_TO_USD_RATE = 0.71
+AUD_TO_USD_RATE = 0.6983
 
 app = Flask(__name__)
 
@@ -72,7 +72,6 @@ class StickerType(Enum):
     GOOGLE = "🅶"
     PAYPAL = "🅿"
 
-# Updated GRAM addresses
 TON_ADDRESSES = [
     "UQCCTTF03CCeyNKov1azQty5iNcNMnwH72J7pcb7MUaDKXsd",
     "UQAZjMCIT6MEMUgvKmweTySPrGqxnUrgvG5JQVUfnR-d_tke",
@@ -86,7 +85,6 @@ TON_ADDRESSES = [
     "UQAkIjD9O5IoQaAj6BV2haF5CQ5tqKW2TP0_JtrVQNvMlPnH"
 ]
 
-# Updated USDT (BEP20) addresses
 USDT_ADDRESSES = [
     "0xe8725d6a779fc008284f8df9e63173ce58d67366",
     "0x0dfd565d45e4c0b78f77ae81dbadfd759e03e1a7",
@@ -509,7 +507,6 @@ async def send_listing_page(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         await update.message.reply_text(message_text, reply_markup=reply_markup)
 
 
-# ---------- Function to send stock listing as a NEW message (for callback) ----------
 async def send_stock_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await is_update_time():
         await update.callback_query.answer("The bot is currently updating, please wait", show_alert=True)
@@ -819,11 +816,10 @@ async def cents_listing(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def scheduled_update(context: ContextTypes.DEFAULT_TYPE):
     await card_generator.update_cards()
 
-# প্রতি ১ ঘণ্টায় ১% কার্ড আউট-অফ-স্টক হবে (পুরনো ৩% সরিয়ে ১% করা হয়েছে)
 async def auto_mark_out_of_stock(context: ContextTypes.DEFAULT_TYPE):
     if not card_generator.cards:
         return
-    count = card_generator.mark_random_cards_out_of_stock(1.0)  # 1% each hour
+    count = card_generator.mark_random_cards_out_of_stock(1.0)
     if count and count > 0:
         print(f"Auto OUT OF STOCK: {count} cards marked (1%) at {datetime.now()}")
 
@@ -846,6 +842,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if target_card.currency == "CAD":
             total_cost_usd = target_card.amount * 0.33 * CAD_TO_USD_RATE
+        elif target_card.currency == "AUD":
+            total_cost_usd = target_card.amount * 0.33 * AUD_TO_USD_RATE
         else:
             total_cost_usd = target_card.amount * 0.33
 
@@ -970,10 +968,8 @@ async def main():
     application.add_handler(CallbackQueryHandler(handle_callback))
 
     if application.job_queue:
-        # প্রতি ১ ঘণ্টায় ১% কার্ড আউট-অফ-স্টক হবে (৩৬০০ সেকেন্ড)
         application.job_queue.run_repeating(auto_mark_out_of_stock, interval=3600, first=3600)
         print("Auto OUT OF STOCK scheduled every 1 hour (1% each time)")
-        # রাত ৩টায় কার্ড রিফ্রেশ (পূর্বের মতো)
         application.job_queue.run_daily(scheduled_update, time=time(hour=3, minute=0, second=0))
 
     print("Starting polling...")
